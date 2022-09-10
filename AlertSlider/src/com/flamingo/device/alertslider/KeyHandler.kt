@@ -40,6 +40,8 @@ import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 
 import java.io.File
+import java.lang.Thread
+import Java.util.concurrent.Executors
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -86,6 +88,7 @@ class KeyHandler : LifecycleService() {
         }
     }
 
+    private val executorService = Executors.newSingleThreadExecutor()
     private var wasMuted = false
 
     override fun onCreate() {
@@ -158,43 +161,56 @@ class KeyHandler : LifecycleService() {
             0,
             UserHandle.USER_CURRENT
         ) == 1
-        when (mode) {
-            Mode.NORMAL -> {
-                audioManager.ringerModeInternal = AudioManager.RINGER_MODE_NORMAL
-                notificationManager.setZenMode(ZEN_MODE_OFF, null, TAG)
-                if (vibrate) performHapticFeedback(HEAVY_CLICK_EFFECT)
-                if (muteMedia && wasMuted) {
-                    audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0)
+
+        executorService.submit {
+            when (mode) {
+                Mode.NORMAL -> {
+                    audioManager.ringerModeInternal = AudioManager.RINGER_MODE_NORMAL
+                    setZenMode(ZEN_MODE_OFF)
+                    if (vibrate) performHapticFeedback(HEAVY_CLICK_EFFECT)
+                    if (muteMedia && wasMuted) {
+                        audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0)
+                    }
+                }
+                Mode.PRIORITY -> {
+                    audioManager.ringerModeInternal = AudioManager.RINGER_MODE_NORMAL
+                    setZenMode(ZEN_MODE_IMPORTANT_INTERRUPTIONS)
+                    if (vibrate) performHapticFeedback(HEAVY_CLICK_EFFECT)
+                    if (muteMedia && wasMuted) {
+                        audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0)
+                    }
+                }
+                Mode.VIBRATE -> {
+                    audioManager.ringerModeInternal = AudioManager.RINGER_MODE_VIBRATE
+                    setZenMode(ZEN_MODE_OFF)
+                    if (vibrate) performHapticFeedback(DOUBLE_CLICK_EFFECT)
+                    if (muteMedia && wasMuted) {
+                        audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0)
+                    }
+                }
+                Mode.SILENT -> {
+                    audioManager.ringerModeInternal = AudioManager.RINGER_MODE_SILENT
+                    setZenMode(ZEN_MODE_OFF)
+                    if (muteMedia) {
+                        audioManager.adjustVolume(AudioManager.ADJUST_MUTE, 0)
+                        wasMuted = true
+                    }
+                }
+                Mode.DND -> {
+                    audioManager.ringerModeInternal = AudioManager.RINGER_MODE_NORMAL
+                    setZenMode(ZEN_MODE_NO_INTERRUPTIONS)
                 }
             }
-            Mode.PRIORITY -> {
-                audioManager.ringerModeInternal = AudioManager.RINGER_MODE_NORMAL
-                notificationManager.setZenMode(ZEN_MODE_IMPORTANT_INTERRUPTIONS, null, TAG)
-                if (vibrate) performHapticFeedback(HEAVY_CLICK_EFFECT)
-                if (muteMedia && wasMuted) {
-                    audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0)
-                }
-            }
-            Mode.VIBRATE -> {
-                audioManager.ringerModeInternal = AudioManager.RINGER_MODE_VIBRATE
-                notificationManager.setZenMode(ZEN_MODE_OFF, null, TAG)
-                if (vibrate) performHapticFeedback(DOUBLE_CLICK_EFFECT)
-                if (muteMedia && wasMuted) {
-                    audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0)
-                }
-            }
-            Mode.SILENT -> {
-                audioManager.ringerModeInternal = AudioManager.RINGER_MODE_SILENT
-                notificationManager.setZenMode(ZEN_MODE_OFF, null, TAG)
-                if (muteMedia) {
-                    audioManager.adjustVolume(AudioManager.ADJUST_MUTE, 0)
-                    wasMuted = true
-                }
-            }
-            Mode.DND -> {
-                audioManager.ringerModeInternal = AudioManager.RINGER_MODE_NORMAL
-                notificationManager.setZenMode(ZEN_MODE_NO_INTERRUPTIONS, null, TAG)
-            }
+        }
+    }
+
+    private fun setZenMode(zenMode: Int) {
+        // Set zen mode
+        notificationManager.setZenMode(zenMode, null, TAG)
+
+        // Wait until zen mode change is committed
+        while (notificationManager.getZenMode() != zenMode) {
+            Thread.sleep(10)
         }
     }
 
