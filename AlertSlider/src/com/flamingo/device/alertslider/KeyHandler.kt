@@ -26,6 +26,8 @@ import android.content.IntentFilter
 import android.content.res.Configuration
 import android.media.AudioManager
 import android.media.AudioSystem
+import android.os.RemoteException
+import android.os.ServiceManager
 import android.os.UEventObserver
 import android.os.UserHandle
 import android.os.VibrationEffect
@@ -35,9 +37,13 @@ import android.provider.Settings.Global.ZEN_MODE_IMPORTANT_INTERRUPTIONS
 import android.provider.Settings.Global.ZEN_MODE_NO_INTERRUPTIONS
 import android.provider.Settings.Global.ZEN_MODE_OFF
 import android.util.Log
+import android.view.KeyEvent
 
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
+
+import com.android.internal.os.IDeviceKeyManager
+import com.android.internal.os.IKeyHandler
 
 import java.io.File
 import java.lang.Thread
@@ -47,6 +53,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private const val DEVICE_KEY_MANAGER = "device_key_manager"
+private val Actions = intArrayOf(KeyEvent.ACTION_DOWN)
+private val ScanCodes = intArrayOf(61)
 
 class KeyHandler : LifecycleService() {
 
@@ -66,25 +76,18 @@ class KeyHandler : LifecycleService() {
     }
 
     private val positionChangeChannel = Channel<AlertSliderPosition>(capacity = Channel.CONFLATED)
-
-    private val alertSliderEventObserver = object : UEventObserver() {
-        override fun onUEvent(event: UEvent) {
-            event.get("SWITCH_STATE")?.let {
-                lifecycleScope.launch {
-                    positionChangeChannel.send(
-                        when (it.toInt()) {
-                            1 -> AlertSliderPosition.Top
-                            2 -> AlertSliderPosition.Middle
-                            3 -> AlertSliderPosition.Bottom
-                            else -> return@launch
-                        }
-                    )
-                }
-            } ?: run {
-                event.get("STATE")?.let {
-                    handleState(it)
-                }
-            }
+    private val keyHandler = object : IKeyHandler.Stub() {
+        override fun handleKeyEvent(keyEvent: KeyEvent) {
+            lifecycleScope.launch {
+                positionChangeChannel.send(
+        	        when (File("/proc/tristatekey/tri_state").readText().trim()) {
+              		    "1" -> AlertSliderPosition.Top
+              		    "2" -> AlertSliderPosition.Middle
+              		    "3" -> AlertSliderPosition.Bottom
+              		    else -> return@launch
+        	        }
+                )
+            }         
         }
     }
 
@@ -93,6 +96,9 @@ class KeyHandler : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
+        lifecycleScope.launch(Dispatchers.Default) {
+            registerKeyHandler()
+        }
         registerReceiver(
             broadcastReceiver,
             IntentFilter(AudioManager.STREAM_MUTE_CHANGED_ACTION)
@@ -104,33 +110,44 @@ class KeyHandler : LifecycleService() {
         }
         lifecycleScope.launch(Dispatchers.IO) {
             // Restore state
-            File(SYSFS_EXTCON).walk().firstOrNull {
-                it.isDirectory && it.name.matches("extcon\\d+".toRegex())
-            }?.let {
-                handleState(File(it, "state").readText(), restoring = true)
-            }
-            // Observe uevents
-            alertSliderEventObserver.startObserving("tri-state-key")
-            alertSliderEventObserver.startObserving("tri_state_key")
+            handleState()
+        }
+    }
+    
+    private fun getDeviceKeyManager(): IDeviceKeyManager? {
+        val service = ServiceManager.getService(DEVICE_KEY_MANAGER) ?: run {
+            Log.wtf(TAG, "Device key manager service not found")
+            return null
+        }
+        return IDeviceKeyManager.Stub.asInterface(service)
+    }
+
+    private suspend fun registerKeyHandler() {
+        try {
+            getDeviceKeyManager()?.registerKeyHandler(keyHandler, ScanCodes, Actions)
+        } catch(e: RemoteException) {
+            Log.e(TAG, "Failed to register key handler", e)
+            stopSelf()
+        }
+    }
+    
+    private fun unregisterKeyHandler() {
+        try {
+            getDeviceKeyManager()?.unregisterKeyHandler(keyHandler)
+        } catch(e: RemoteException) {
+            Log.e(TAG, "Failed to register key handler", e)
         }
     }
 
-    private fun handleState(state: String, restoring: Boolean = false) {
-        val none = state.contains("USB=0")
-        val vibration = state.contains("HOST=0")
-        val silent = state.contains("null)=0")
-        val sliderPosition = when {
-            none && !vibration && !silent -> AlertSliderPosition.Bottom
-            vibration && !none && !silent -> AlertSliderPosition.Middle
-            silent && !none && !vibration -> AlertSliderPosition.Top
-            else -> return
-        }
+    private fun handleState() {
+        val sliderPosition = when (File("/proc/tristatekey/tri_state").readText().trim()) {
+              			 "1" -> AlertSliderPosition.Top
+              			 "2" -> AlertSliderPosition.Middle
+              			 "3" -> AlertSliderPosition.Bottom
+              			 else -> return
+        		      }
         lifecycleScope.launch(Dispatchers.IO) {
-            if (restoring) {
-                handlePosition(sliderPosition, vibrate = false, showDialog = false)
-            } else {
-                positionChangeChannel.send(sliderPosition)
-            }
+            handlePosition(sliderPosition, vibrate = false, showDialog = false)
         }
     }
 
@@ -233,6 +250,7 @@ class KeyHandler : LifecycleService() {
     override fun onDestroy() {
         alertSliderEventObserver.stopObserving()
         unregisterReceiver(broadcastReceiver)
+        unregisterKeyHandler()
         super.onDestroy()
     }
 
@@ -245,9 +263,6 @@ class KeyHandler : LifecycleService() {
         private val DOUBLE_CLICK_EFFECT =
                 VibrationEffect.createPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK)
 
-        private const val MUTE_MEDIA_WITH_SILENT = "config_mute_media"
-        
-        // Paths
-        private const val SYSFS_EXTCON = "/sys/devices/platform/soc/soc:tri_state_key/extcon"
+        private const val MUTE_MEDIA_WITH_SILENT = "config_mute_media"     
     }
 }
