@@ -24,8 +24,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
+import android.hardware.input.InputManager
 import android.media.AudioManager
 import android.media.AudioSystem
+import android.os.Looper
 import android.os.UEventObserver
 import android.os.UserHandle
 import android.os.VibrationEffect
@@ -35,18 +37,29 @@ import android.provider.Settings.Global.ZEN_MODE_IMPORTANT_INTERRUPTIONS
 import android.provider.Settings.Global.ZEN_MODE_NO_INTERRUPTIONS
 import android.provider.Settings.Global.ZEN_MODE_OFF
 import android.util.Log
+import android.view.Display
+import android.view.InputEvent
+import android.view.InputEventReceiver
+import android.view.KeyEvent
 
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 
+import com.android.internal.os.IDeviceKeyManager
+import com.android.internal.os.IKeyHandler
+
 import java.io.File
 import java.lang.Thread
-import Java.util.concurrent.Executors
+import java.util.concurrent.Executors
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private const val DEVICE_KEY_MANAGER = "device_key_manager"
+
+private val TAG = KeyHandler::class.simpleName!!
 
 class KeyHandler : LifecycleService() {
 
@@ -54,9 +67,13 @@ class KeyHandler : LifecycleService() {
     private val notificationManager by lazy { getSystemService(NotificationManager::class.java) }
     private val vibrator by lazy { getSystemService(Vibrator::class.java) }
     private val alertSliderController by lazy { AlertSliderController(this) }
+    private val inputManager by lazy { getSystemService(InputManager::class.java) }
 
     private val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent?) {
+            if (intent?.action != AudioManager.STREAM_MUTE_CHANGED_ACTION) {
+                return
+            }
             val stream = intent?.getIntExtra(AudioManager.EXTRA_VOLUME_STREAM_TYPE, -1)
             val state = intent?.getBooleanExtra(AudioManager.EXTRA_STREAM_VOLUME_MUTED, false)
             if (stream == AudioSystem.STREAM_MUSIC && state == false) {
@@ -67,29 +84,19 @@ class KeyHandler : LifecycleService() {
 
     private val positionChangeChannel = Channel<AlertSliderPosition>(capacity = Channel.CONFLATED)
 
-    private val alertSliderEventObserver = object : UEventObserver() {
-        override fun onUEvent(event: UEvent) {
-            event.get("SWITCH_STATE")?.let {
-                lifecycleScope.launch {
-                    positionChangeChannel.send(
-                        when (it.toInt()) {
-                            1 -> AlertSliderPosition.Top
-                            2 -> AlertSliderPosition.Middle
-                            3 -> AlertSliderPosition.Bottom
-                            else -> return@launch
-                        }
-                    )
-                }
-            } ?: run {
-                event.get("STATE")?.let {
-                    handleState(it)
-                }
+    private val eventChannel = Channel<KeyEvent>(capacity = Channel.CONFLATED)
+    private val keyHandler = object : IKeyHandler.Stub() {
+        override fun handleKeyEvent(keyEvent: KeyEvent) {
+            lifecycleScope.launch {
+                eventChannel.send(keyEvent)
             }
         }
     }
 
     private val executorService = Executors.newSingleThreadExecutor()
     private var wasMuted = false
+
+    private var inputEventReceiver: InputEventReceiver? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -102,35 +109,69 @@ class KeyHandler : LifecycleService() {
                 handlePosition(position)
             }
         }
-        lifecycleScope.launch(Dispatchers.IO) {
-            // Restore state
-            File(SYSFS_EXTCON).walk().firstOrNull {
-                it.isDirectory && it.name.matches("extcon\\d+".toRegex())
-            }?.let {
-                handleState(File(it, "state").readText(), restoring = true)
+        val alertSlider = inputManager.inputDeviceIds.map {
+            inputManager.getInputDevice(it)
+        }.find {
+            it.name == "oplus,hall_tri_state_key"
+        }?.let {
+            Log.d(TAG, "device = $it")
+        } ?: {
+            Log.e(TAG, "input device not found")
+        }
+        registerKeyHandler()
+    }
+
+    /*private fun getDeviceKeyManager(): IDeviceKeyManager? {
+        val service = ServiceManager.getService(DEVICE_KEY_MANAGER) ?: run {
+            Log.wtf(TAG, "Device key manager service not found")
+            return null
+        }
+        return IDeviceKeyManager.Stub.asInterface(service)
+    }*/
+
+    private fun registerKeyHandler() {
+        val inputMonitor = inputManager.monitorGestureInput("alertslider", Display.DEFAULT_DISPLAY)
+        inputEventReceiver = object : InputEventReceiver(
+            inputMonitor.inputChannel,
+            Looper.myLooper()
+        ) {
+            override fun onInputEvent(event: InputEvent) {
+                handleInputEvent(event)
             }
-            // Observe uevents
-            alertSliderEventObserver.startObserving("tri-state-key")
-            alertSliderEventObserver.startObserving("tri_state_key")
+        }
+        /*try {
+            getDeviceKeyManager()?.registerKeyHandler(keyHandler, (0..1000).toIntArray(), intArrayOf(KeyEvent.ACTION_DOWN))
+            handleKeyEvents()
+        } catch(e: RemoteException) {
+            Log.e(TAG, "Failed to register key handler", e)
+            stopSelf()
+        }*/
+    }
+
+    /*private fun unregisterKeyHandler() {
+        try {
+            getDeviceKeyManager()?.unregisterKeyHandler(keyHandler)
+        } catch(e: RemoteException) {
+            Log.e(TAG, "Failed to register key handler", e)
+        }
+    }*/
+
+    private suspend fun handleKeyEvents() {
+        withContext(Dispatchers.IO) {
+            for (event in eventChannel) {
+                handleKeyEvent(event)
+            }
         }
     }
 
-    private fun handleState(state: String, restoring: Boolean = false) {
-        val none = state.contains("USB=0")
-        val vibration = state.contains("HOST=0")
-        val silent = state.contains("null)=0")
-        val sliderPosition = when {
-            none && !vibration && !silent -> AlertSliderPosition.Bottom
-            vibration && !none && !silent -> AlertSliderPosition.Middle
-            silent && !none && !vibration -> AlertSliderPosition.Top
-            else -> return
-        }
-        lifecycleScope.launch(Dispatchers.IO) {
-            if (restoring) {
-                handlePosition(sliderPosition, vibrate = false, showDialog = false)
-            } else {
-                positionChangeChannel.send(sliderPosition)
-            }
+    private fun handleKeyEvent(keyEvent: KeyEvent) {
+        
+    }
+
+    private fun handleInputEvent(inputEvent: InputEvent) {
+        Log.d(TAG, "handleInputEvent")
+        if (inputEvent.device.name == "oplus,hall_tri_state_key") {
+            Log.d(TAG, "alert slider detected")
         }
     }
 
@@ -215,7 +256,9 @@ class KeyHandler : LifecycleService() {
     }
 
     private fun performHapticFeedback(effect: VibrationEffect) {
-        if (vibrator.hasVibrator()) vibrator.vibrate(effect)
+        if (vibrator.hasVibrator()) {
+            vibrator.vibrate(effect)
+        }
     }
 
     private suspend fun updateDialogAndShow(mode: Mode, position: AlertSliderPosition) {
@@ -231,7 +274,8 @@ class KeyHandler : LifecycleService() {
     }
 
     override fun onDestroy() {
-        alertSliderEventObserver.stopObserving()
+        inputEventReceiver?.dispose()
+        //unregisterKeyHandler()
         unregisterReceiver(broadcastReceiver)
         super.onDestroy()
     }
