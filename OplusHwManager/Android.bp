@@ -1,0 +1,44 @@
+android_app {
+    name: "OplusHwManager",
+    srcs: ["src/**/*.kt"],
+    resource_dirs: ["res"],
+    certificate: "platform",
+    platform_apis: true,
+    system_ext_specific: true,
+    privileged: true,
+    defaults: [
+        "SettingsLibDefaults",
+    ],
+    static_libs: [
+        "androidx.annotation_annotation",
+        "androidx.core_core-ktx",
+        "androidx.fragment_fragment-ktx",
+        "androidx.lifecycle_lifecycle-runtime-ktx",
+        "androidx.lifecycle_lifecycle-service",
+        "androidx.preference_preference",
+        "kotlinx_coroutines_android",
+        "vendor_support",
+    ],
+    optimize: {
+        enabled: false,
+    },
+    required: [
+        "tri-state-key-calibrate",
+        "privapp_whitelist_com.flamingo.oplushw",
+    ],
+}
+
+sh_binary {
+    name: "tri-state-key-calibrate",
+    init_rc: ["tri-state-key-calibrate.rc"],
+    src: "tri-state-key-calibrate.sh",
+    vendor: true,
+}
+
+prebuilt_etc {
+    name: "privapp_whitelist_com.flamingo.oplushw",
+    sub_dir: "permissions",
+    src: "privapp-permissions-oplushw.xml",
+    filename_from_src: true,
+    system_ext_specific: true,
+}
