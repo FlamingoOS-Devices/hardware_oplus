@@ -16,63 +16,32 @@
 
 package com.flamingo.oplushw.touch
 
-import android.content.Context
-import android.os.UserHandle
-import android.provider.Settings
-import android.util.Log
-
 import androidx.annotation.StringRes
 
-import com.android.internal.lineage.hardware.TouchscreenGesture
 import com.flamingo.oplushw.R
+
+private const val SCANCODE_START = 246
 
 enum class Gesture(
     val scanCode: Int,
     @StringRes val title: Int
 ) {
-    LETTER_W(246, R.string.touchscreen_gesture_letter_w_title),
-    LETTER_M(247, R.string.touchscreen_gesture_letter_m_title),
-    LETTER_S(248, R.string.touchscreen_gesture_letter_s_title),
-    LETTER_O(250, R.string.touchscreen_gesture_letter_o_title),
-    TWO_FINGER_SWIPE_DOWN(251, R.string.touchscreen_gesture_two_fingers_down_swipe_title),
-    DOWN_ARROW(252, R.string.touchscreen_gesture_down_arrow_title),
-    LEFT_ARROW(253, R.string.touchscreen_gesture_left_arrow_title),
-    RIGHT_ARROW(254, R.string.touchscreen_gesture_right_arrow_title),
-    SINGLE_TAP(255, R.string.touchscreen_gesture_single_tap_title),
+    DOUBLE_TAP(SCANCODE_START + 1, R.string.touchscreen_gesture_double_tap_title),
+    DOWN_ARROW(SCANCODE_START + 2, R.string.touchscreen_gesture_down_arrow_title),
+    UP_ARROW(SCANCODE_START + 3, R.string.touchscreen_gesture_up_arrow_title),
+    RIGHT_ARROW(SCANCODE_START + 4, R.string.touchscreen_gesture_right_arrow_title),
+    LEFT_ARROW(SCANCODE_START + 5, R.string.touchscreen_gesture_left_arrow_title),
+    LETTER_O(SCANCODE_START + 6, R.string.touchscreen_gesture_letter_o_title),
+    DOUBLE_SWIPE(SCANCODE_START + 7, R.string.touchscreen_gesture_double_swipe_title),
+    RIGHT_SWIPE(SCANCODE_START + 8, R.string.touchscreen_gesture_right_swipe_title),
+    LEFT_SWIPE(SCANCODE_START + 9, R.string.touchscreen_gesture_left_swipe_title),
+    DOWN_SWIPE(SCANCODE_START + 10, R.string.touchscreen_gesture_down_swipe_title),
+    UP_SWIPE(SCANCODE_START + 11, R.string.touchscreen_gesture_up_swipe_title),
+    LETTER_M(SCANCODE_START + 12, R.string.touchscreen_gesture_letter_m_title),
+    LETTER_W(SCANCODE_START + 13, R.string.touchscreen_gesture_letter_w_title),
+    FINGERPRINT_DOWN(SCANCODE_START + 14, R.string.touchscreen_gesture_fingerprint_down_title),
+    FINGERPRINT_UP(SCANCODE_START + 15, R.string.touchscreen_gesture_fingerprint_up_title),
+    SINGLE_TAP(SCANCODE_START + 16, R.string.touchscreen_gesture_single_tap_title),
+    HEART(SCANCODE_START + 17, R.string.touchscreen_gesture_heart_title),
+    LETTER_S(SCANCODE_START + 18, R.string.touchscreen_gesture_letter_s_title),
 }
-
-val ScanCodes = Gesture.values().map { it.scanCode }.toIntArray()
-val ScanCodeTitleMap = Gesture.values().associate { it.scanCode to it.title }
-
-enum class Action(@StringRes val title: Int) {
-    NONE(R.string.touchscreen_gesture_action_do_nothing),
-    FLASHLIGHT(R.string.touchscreen_gesture_action_flashlight),
-    CAMERA(R.string.touchscreen_gesture_action_camera),
-    BROWSER(R.string.touchscreen_gesture_action_browser),
-    DIALER(R.string.touchscreen_gesture_action_dialer),
-    EMAIL(R.string.touchscreen_gesture_action_email),
-    MESSAGES(R.string.touchscreen_gesture_action_messages),
-    PLAY_PAUSE_MUSIC(R.string.touchscreen_gesture_action_play_pause_music),
-    PREVIOUS_TRACK(R.string.touchscreen_gesture_action_previous_track),
-    NEXT_TRACK(R.string.touchscreen_gesture_action_next_track),
-    VOLUME_DOWN(R.string.touchscreen_gesture_action_volume_down),
-    VOLUME_UP(R.string.touchscreen_gesture_action_volume_up),
-    WAKEUP(R.string.touchscreen_gesture_action_wakeup),
-    AMBIENT_DISPLAY(R.string.touchscreen_gesture_action_ambient_display)
-}
-
-fun getDefaultActionForScanCode(scanCode: Int): Action {
-    return when(scanCode) {
-        Gesture.SINGLE_TAP.scanCode -> Action.AMBIENT_DISPLAY
-        Gesture.TWO_FINGER_SWIPE_DOWN.scanCode -> Action.PLAY_PAUSE_MUSIC
-        Gesture.DOWN_ARROW.scanCode -> Action.FLASHLIGHT
-        Gesture.LEFT_ARROW.scanCode -> Action.PREVIOUS_TRACK
-        Gesture.RIGHT_ARROW.scanCode -> Action.NEXT_TRACK
-        else -> Action.NONE
-    }
-}
-
-private val ReplaceRegex = "\\s+".toRegex()
-
-val TouchscreenGesture.settingKey: String
-    get() = "ts_gesture_" + name.lowercase().replace(ReplaceRegex, "_")

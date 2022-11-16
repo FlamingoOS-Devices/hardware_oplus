@@ -30,12 +30,10 @@
 
     <!-- Gestures -->
     <string name="touchscreen_gesture_settings_title">息屏手勢</string>
-    <string name="touchscreen_gesture_haptic_feedback_title">觸控反饋</string>
-    <string name="touchscreen_gesture_haptic_feedback_summary">檢測到息屏手勢後震動</string>
 
     <!-- Screen off Gestures : Input -->
     <string name="touchscreen_gesture_single_tap_title">單擊</string>
-    <string name="touchscreen_gesture_two_fingers_down_swipe_title">雙指下滑</string>
+    <string name="touchscreen_gesture_double_swipe_title">雙指下滑</string>
     <string name="touchscreen_gesture_down_arrow_title">繪製一個 \"V\"</string>
     <string name="touchscreen_gesture_right_arrow_title">繪製一個 \"&gt;\"</string>
     <string name="touchscreen_gesture_left_arrow_title">繪製一個 \"&lt;\"</string>
@@ -45,14 +43,9 @@
     <string name="touchscreen_gesture_letter_w_title">繪製字母 \"W\"</string>
 
     <!-- Screen off Gestures : Actions -->
-    <string name="touchscreen_gesture_action_dialog_title">手勢操作</string>
     <string name="touchscreen_gesture_action_do_nothing">什麼都不做</string>
     <string name="touchscreen_gesture_action_flashlight">切換手電筒</string>
     <string name="touchscreen_gesture_action_camera">開啟相機</string>
-    <string name="touchscreen_gesture_action_browser">開啟瀏覽器</string>
-    <string name="touchscreen_gesture_action_dialer">開啟撥號盤</string>
-    <string name="touchscreen_gesture_action_email">檢視您的電子郵件</string>
-    <string name="touchscreen_gesture_action_messages">檢視您的資訊</string>
     <string name="touchscreen_gesture_action_play_pause_music">播放/暫停音樂</string>
     <string name="touchscreen_gesture_action_previous_track">切換到上一曲目</string>
     <string name="touchscreen_gesture_action_next_track">切換到下一曲目</string>

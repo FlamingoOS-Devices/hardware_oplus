@@ -30,12 +30,10 @@
 
     <!-- Gestures -->
     <string name="touchscreen_gesture_settings_title">Gestes de l\'écran tactile</string>
-    <string name="touchscreen_gesture_haptic_feedback_title">Retour haptique</string>
-    <string name="touchscreen_gesture_haptic_feedback_summary">Vibrer lorsqu\'un geste de l\'écran tactile est détecté</string>
 
     <!-- Screen off Gestures : Input -->
     <string name="touchscreen_gesture_single_tap_title">Un seul clic</string>
-    <string name="touchscreen_gesture_two_fingers_down_swipe_title">Balayez vers le bas avec deux doigts</string>
+    <string name="touchscreen_gesture_double_swipe_title">Balayez vers le bas avec deux doigts</string>
     <string name="touchscreen_gesture_down_arrow_title">Dessine un \"V\"</string>
     <string name="touchscreen_gesture_right_arrow_title">Dessine un \"&gt;\"</string>
     <string name="touchscreen_gesture_left_arrow_title">Dessine un \"&lt;\"</string>
@@ -45,14 +43,9 @@
     <string name="touchscreen_gesture_letter_w_title">Dessine la lettre \"W\"</string>
 
     <!-- Screen off Gestures : Actions -->
-    <string name="touchscreen_gesture_action_dialog_title">Action gestuelle</string>
     <string name="touchscreen_gesture_action_do_nothing">Ne fais rien</string>
     <string name="touchscreen_gesture_action_flashlight">Basculer la lampe de poche</string>
     <string name="touchscreen_gesture_action_camera">Ouvrir l\'appareil photo</string>
-    <string name="touchscreen_gesture_action_browser">Ouvrez le navigateur</string>
-    <string name="touchscreen_gesture_action_dialer">Ouvrez le composeur</string>
-    <string name="touchscreen_gesture_action_email">Consulter vos e-mails</string>
-    <string name="touchscreen_gesture_action_messages">Afficher vos messages</string>
     <string name="touchscreen_gesture_action_play_pause_music">Lire/mettre en pause la musique</string>
     <string name="touchscreen_gesture_action_previous_track">Lire le morceau de musique précédent</string>
     <string name="touchscreen_gesture_action_next_track">Lire le morceau de musique suivant</string>

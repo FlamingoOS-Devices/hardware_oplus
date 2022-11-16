@@ -13,7 +13,7 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
     <string name="oplushw_manager">OplusHardwareManager</string>
 
@@ -32,12 +32,10 @@
 
     <!-- Gestures -->
     <string name="touchscreen_gesture_settings_title">Touchscreen gestures</string>
-    <string name="touchscreen_gesture_haptic_feedback_title">Haptic feedback</string>
-    <string name="touchscreen_gesture_haptic_feedback_summary">Vibrate when a touchscreen gesture is detected</string>
 
     <!-- Screen off Gestures : Input -->
     <string name="touchscreen_gesture_single_tap_title">Single tap</string>
-    <string name="touchscreen_gesture_two_fingers_down_swipe_title">Swipe down with two fingers</string>
+    <string name="touchscreen_gesture_double_swipe_title">Swipe down with two fingers</string>
     <string name="touchscreen_gesture_down_arrow_title">Draw a \"V\"</string>
     <string name="touchscreen_gesture_right_arrow_title">Draw a \"&gt;\"</string>
     <string name="touchscreen_gesture_left_arrow_title">Draw a \"&lt;\"</string>
@@ -45,16 +43,22 @@
     <string name="touchscreen_gesture_letter_m_title">Draw the letter \"M\"</string>
     <string name="touchscreen_gesture_letter_s_title">Draw the letter \"S\"</string>
     <string name="touchscreen_gesture_letter_w_title">Draw the letter \"W\"</string>
+    <string name="touchscreen_gesture_double_tap_title">Double tap</string>
+    <string name="touchscreen_gesture_up_arrow_title">Draw a \"\u0245\"</string>
+    <string name="touchscreen_gesture_right_swipe_title">Swipe from left to right</string>
+    <string name="touchscreen_gesture_left_swipe_title">Swipe from right to left</string>
+    <string name="touchscreen_gesture_down_swipe_title">Swipe down with one finger</string>
+    <string name="touchscreen_gesture_up_swipe_title">Swipe up with one finger</string>
+    <string name="touchscreen_gesture_fingerprint_down_title">Fingerprint down</string>
+    <string name="touchscreen_gesture_fingerprint_up_title">Fingerprint up</string>
+    <string name="touchscreen_gesture_heart_title">Draw a \"\u2661\uFE0E\"</string>
 
     <!-- Screen off Gestures : Actions -->
-    <string name="touchscreen_gesture_action_dialog_title">Gesture action</string>
+    <string name="enable_gesture">Enable gesture</string>
+    <string name="touchscreen_gesture_haptic_feedback_title">Enable haptic feedback</string>
     <string name="touchscreen_gesture_action_do_nothing">Do nothing</string>
     <string name="touchscreen_gesture_action_flashlight">Toggle flashlight</string>
     <string name="touchscreen_gesture_action_camera">Open the camera</string>
-    <string name="touchscreen_gesture_action_browser">Open the browser</string>
-    <string name="touchscreen_gesture_action_dialer">Open the dialer</string>
-    <string name="touchscreen_gesture_action_email">View your emails</string>
-    <string name="touchscreen_gesture_action_messages">View your messages</string>
     <string name="touchscreen_gesture_action_play_pause_music">Play/pause music</string>
     <string name="touchscreen_gesture_action_previous_track">Play the previous music track</string>
     <string name="touchscreen_gesture_action_next_track">Play the next music track</string>
@@ -62,5 +66,8 @@
     <string name="touchscreen_gesture_action_volume_up">Raise media volume</string>
     <string name="touchscreen_gesture_action_wakeup">Wake up the device</string>
     <string name="touchscreen_gesture_action_ambient_display">Show ambient display</string>
+    <string name="touchscreen_gesture_action_open_app">Open <xliff:g id="app_name_or_package">%1$s</xliff:g></string>
+    <string name="shortcuts">Shortcuts</string>
+    <string name="open_apps">Open application</string>
 
 </resources>

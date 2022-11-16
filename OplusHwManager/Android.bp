@@ -10,8 +10,6 @@ android_app {
         "SettingsLibDefaults",
     ],
     static_libs: [
-        "androidx.annotation_annotation",
-        "androidx.core_core-ktx",
         "androidx.fragment_fragment-ktx",
         "androidx.lifecycle_lifecycle-runtime-ktx",
         "androidx.lifecycle_lifecycle-service",
@@ -20,7 +18,12 @@ android_app {
         "vendor_support",
     ],
     optimize: {
-        enabled: false,
+        enabled: true,
+        optimize: true,
+        shrink: true,
+        proguard_flags_files: [
+            "proguard.flags",
+        ],
     },
     required: [
         "tri-state-key-calibrate",

@@ -32,8 +32,8 @@ import androidx.lifecycle.lifecycleScope
 import com.android.internal.os.IDeviceKeyManager
 import com.android.internal.os.IKeyHandler
 import com.flamingo.oplushw.alertslider.AlertSliderController
+import com.flamingo.oplushw.touch.Gesture
 import com.flamingo.oplushw.touch.GestureController
-import com.flamingo.oplushw.touch.ScanCodes
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -86,17 +86,13 @@ class KeyHandler : LifecycleService() {
 
     private fun registerKeyHandlers() {
         try {
-            val inputDeviceIds = inputManager.inputDeviceIds
-            val inputDevice = inputDeviceIds.find {
+            val deviceId = inputManager.inputDeviceIds.find {
                 val name = inputManager.getInputDevice(it).name
                 name == "oplus,hall_tri_state_key" || name == "oplus,tri-state-key"
+            } ?: run {
+                Log.e(TAG, "Failed to find tri state device")
+                null
             }
-            val deviceId = inputManager.inputDeviceIds.find {
-                    val name = inputManager.getInputDevice(it).name
-                    name == "oplus,hall_tri_state_key" || name == "oplus,tri-state-key"
-                } ?: run {
-                    Log.e(TAG, "Failed to find tri state device")
-                }
             val km = getDeviceKeyManager() ?: run {
                 stopSelf()
                 return
@@ -115,7 +111,7 @@ class KeyHandler : LifecycleService() {
             km.registerKeyHandler(
                 gestureToken,
                 gestureKeyHandler,
-                ScanCodes,
+                Gesture.values().map { it.scanCode }.toIntArray(),
                 intArrayOf(KeyEvent.ACTION_UP),
                 -1
             )
@@ -143,7 +139,7 @@ class KeyHandler : LifecycleService() {
                 alertSliderController.updateMode()
             }
         }
-        lifecycleScope.launch(Dispatchers.Default) {
+        lifecycleScope.launch {
             for (scanCode in gestureEventChannel) {
                 gestureController.handleKeyScanCode(scanCode)
             }
