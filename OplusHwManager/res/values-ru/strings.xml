@@ -35,7 +35,7 @@
 
     <!-- Screen off Gestures : Input -->
     <string name="touchscreen_gesture_single_tap_title">Один тап</string>
-    <string name="touchscreen_gesture_two_fingers_down_swipe_title">Проведите двумя пальцами вниз</string>
+    <string name="touchscreen_gesture_double_swipe_title">Проведите двумя пальцами вниз</string>
     <string name="touchscreen_gesture_down_arrow_title">Нарисуйте a \"V\"</string>
     <string name="touchscreen_gesture_right_arrow_title">Нарисуйте a \"&gt;\"</string>
     <string name="touchscreen_gesture_left_arrow_title">Нарисуйте a \"&lt;\"</string>

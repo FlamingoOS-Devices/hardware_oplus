@@ -35,7 +35,7 @@
 
     <!-- Screen off Gestures : Input -->
     <string name="touchscreen_gesture_single_tap_title">Un seul clic</string>
-    <string name="touchscreen_gesture_two_fingers_down_swipe_title">Balayez vers le bas avec deux doigts</string>
+    <string name="touchscreen_gesture_double_swipe_title">Balayez vers le bas avec deux doigts</string>
     <string name="touchscreen_gesture_down_arrow_title">Dessine un \"V\"</string>
     <string name="touchscreen_gesture_right_arrow_title">Dessine un \"&gt;\"</string>
     <string name="touchscreen_gesture_left_arrow_title">Dessine un \"&lt;\"</string>

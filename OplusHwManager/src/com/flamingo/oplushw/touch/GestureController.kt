@@ -255,7 +255,7 @@ class GestureController(private val context: Context) {
     }
 
     companion object {
-        private const val TAG = "GestureHandler"
+        private const val TAG = "GestureController"
 
         private const val PULSE_ACTION = "com.android.systemui.doze.pulse"
 

@@ -30,15 +30,24 @@ enum class Gesture(
     val scanCode: Int,
     @StringRes val title: Int
 ) {
-    LETTER_W(246, R.string.touchscreen_gesture_letter_w_title),
-    LETTER_M(247, R.string.touchscreen_gesture_letter_m_title),
-    LETTER_S(248, R.string.touchscreen_gesture_letter_s_title),
-    LETTER_O(250, R.string.touchscreen_gesture_letter_o_title),
-    TWO_FINGER_SWIPE_DOWN(251, R.string.touchscreen_gesture_two_fingers_down_swipe_title),
-    DOWN_ARROW(252, R.string.touchscreen_gesture_down_arrow_title),
-    LEFT_ARROW(253, R.string.touchscreen_gesture_left_arrow_title),
-    RIGHT_ARROW(254, R.string.touchscreen_gesture_right_arrow_title),
-    SINGLE_TAP(255, R.string.touchscreen_gesture_single_tap_title),
+    DOUBLE_TAP(247, R.string.touchscreen_gesture_double_tap_title),
+    DOWN_ARROW(248, R.string.touchscreen_gesture_down_arrow_title),
+    UP_ARROW(249, R.string.touchscreen_gesture_up_arrow_title),
+    RIGHT_ARROW(250, R.string.touchscreen_gesture_right_arrow_title),
+    LEFT_ARROW(251, R.string.touchscreen_gesture_left_arrow_title),
+    LETTER_O(252, R.string.touchscreen_gesture_letter_o_title),
+    DOUBLE_SWIPE(253, R.string.touchscreen_gesture_double_swipe_title),
+    RIGHT_SWIPE(254, R.string.touchscreen_gesture_right_swipe_title),
+    LEFT_SWIPE(255, R.string.touchscreen_gesture_left_swipe_title),
+    DOWN_SWIPE(256, R.string.touchscreen_gesture_down_swipe_title),
+    UP_SWIPE(257, R.string.touchscreen_gesture_up_swipe_title),
+    LETTER_M(258, R.string.touchscreen_gesture_letter_m_title),
+    LETTER_W(259, R.string.touchscreen_gesture_letter_w_title),
+    FINGERPRINT_DOWN(260, R.string.touchscreen_gesture_fingerprint_down_title),
+    FINGERPRINT_UP(261, R.string.touchscreen_gesture_fingerprint_up_title),
+    SINGLE_TAP(262, R.string.touchscreen_gesture_single_tap_title),
+    HEART(263, R.string.touchscreen_gesture_heart_title),
+    LETTER_S(264, R.string.touchscreen_gesture_letter_s_title),
 }
 
 val ScanCodes = Gesture.values().map { it.scanCode }.toIntArray()
@@ -63,8 +72,9 @@ enum class Action(@StringRes val title: Int) {
 
 fun getDefaultActionForScanCode(scanCode: Int): Action {
     return when(scanCode) {
+        Gesture.DOUBLE_TAP.scanCode -> Action.WAKEUP
         Gesture.SINGLE_TAP.scanCode -> Action.AMBIENT_DISPLAY
-        Gesture.TWO_FINGER_SWIPE_DOWN.scanCode -> Action.PLAY_PAUSE_MUSIC
+        Gesture.DOUBLE_SWIPE.scanCode -> Action.PLAY_PAUSE_MUSIC
         Gesture.DOWN_ARROW.scanCode -> Action.FLASHLIGHT
         Gesture.LEFT_ARROW.scanCode -> Action.PREVIOUS_TRACK
         Gesture.RIGHT_ARROW.scanCode -> Action.NEXT_TRACK

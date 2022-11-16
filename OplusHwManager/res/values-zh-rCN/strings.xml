@@ -35,7 +35,7 @@
 
     <!-- Screen off Gestures : Input -->
     <string name="touchscreen_gesture_single_tap_title">单击</string>
-    <string name="touchscreen_gesture_two_fingers_down_swipe_title">双指下滑</string>
+    <string name="touchscreen_gesture_double_swipe_title">双指下滑</string>
     <string name="touchscreen_gesture_down_arrow_title">绘制一个 \"V\"</string>
     <string name="touchscreen_gesture_right_arrow_title">绘制一个 \"&gt;\"</string>
     <string name="touchscreen_gesture_left_arrow_title">绘制一个 \"&lt;\"</string>

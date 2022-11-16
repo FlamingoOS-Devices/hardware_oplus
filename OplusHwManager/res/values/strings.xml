@@ -37,7 +37,7 @@
 
     <!-- Screen off Gestures : Input -->
     <string name="touchscreen_gesture_single_tap_title">Single tap</string>
-    <string name="touchscreen_gesture_two_fingers_down_swipe_title">Swipe down with two fingers</string>
+    <string name="touchscreen_gesture_double_swipe_title">Swipe down with two fingers</string>
     <string name="touchscreen_gesture_down_arrow_title">Draw a \"V\"</string>
     <string name="touchscreen_gesture_right_arrow_title">Draw a \"&gt;\"</string>
     <string name="touchscreen_gesture_left_arrow_title">Draw a \"&lt;\"</string>
@@ -45,6 +45,15 @@
     <string name="touchscreen_gesture_letter_m_title">Draw the letter \"M\"</string>
     <string name="touchscreen_gesture_letter_s_title">Draw the letter \"S\"</string>
     <string name="touchscreen_gesture_letter_w_title">Draw the letter \"W\"</string>
+    <string name="touchscreen_gesture_double_tap_title">Double tap</string>
+    <string name="touchscreen_gesture_up_arrow_title">Draw a \"\u0245\"</string>
+    <string name="touchscreen_gesture_right_swipe_title">Swipe from left to right</string>
+    <string name="touchscreen_gesture_left_swipe_title">Swipe from right to left</string>
+    <string name="touchscreen_gesture_down_swipe_title">Swipe down with one finger</string>
+    <string name="touchscreen_gesture_up_swipe_title">Swipe up with one finger</string>
+    <string name="touchscreen_gesture_fingerprint_down_title">Fingerprint down</string>
+    <string name="touchscreen_gesture_fingerprint_up_title">Fingerprint up</string>
+    <string name="touchscreen_gesture_heart_title">Draw a \"\u2661\uFE0E\"</string>
 
     <!-- Screen off Gestures : Actions -->
     <string name="touchscreen_gesture_action_dialog_title">Gesture action</string>

@@ -33,7 +33,7 @@
 
     <!-- Screen off Gestures : Input -->
     <string name="touchscreen_gesture_single_tap_title">Toque único</string>
-    <string name="touchscreen_gesture_two_fingers_down_swipe_title">Deslizar para baixo com dois dedos</string>
+    <string name="touchscreen_gesture_double_swipe_title">Deslizar para baixo com dois dedos</string>
     <string name="touchscreen_gesture_down_arrow_title">Desenhe um \"V\"</string>
     <string name="touchscreen_gesture_right_arrow_title">Desenhe um \"&gt;\"</string>
     <string name="touchscreen_gesture_left_arrow_title">Desenhe um \"&lt;\"</string>
