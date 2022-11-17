@@ -17,15 +17,14 @@
 package com.flamingo.oplushw.touch
 
 import android.Manifest
+import android.app.AppLockManager
 import android.app.KeyguardManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.content.pm.PackageManager.ResolveInfoFlags
+import android.hardware.display.AmbientDisplayConfiguration
 import android.media.AudioManager
 import android.media.session.MediaSessionLegacyHelper
-import android.net.Uri
 import android.os.PowerManager
 import android.os.SystemClock
 import android.os.UserHandle
@@ -45,16 +44,27 @@ import com.android.internal.util.flamingo.FlamingoUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+private const val PULSE_ACTION = "com.android.systemui.doze.pulse"
+private const val GESTURE_WAKEUP_REASON = "touchscreen-gesture-wakeup"
+private const val GESTURE_REQUEST = 1
+
+private val TAG = GestureController::class.simpleName!!
+private val GESTURE_WAKELOCK_TAG = "$TAG:GestureWakeLock"
+private val HEAVY_CLICK_EFFECT = VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
+
 class GestureController(private val context: Context) {
 
     private val audioManager = context.getSystemService(AudioManager::class.java)
     private val powerManager = context.getSystemService(PowerManager::class.java)
     private val vibrator = context.getSystemService(Vibrator::class.java)
     private val keyguardManager = context.getSystemService(KeyguardManager::class.java)
+    private val appLockManager = context.getSystemService(AppLockManager::class.java)
 
     private val settingKeyMap = SparseArray<String>()
 
     private val gestureWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, GESTURE_WAKELOCK_TAG)
+
+    private val ambientDisplayConfig = AmbientDisplayConfiguration(context)
 
     suspend fun enableGestures() {
         withContext(Dispatchers.Default) {
@@ -62,30 +72,13 @@ class GestureController(private val context: Context) {
             if (!lhm.isSupported(FEATURE_TOUCHSCREEN_GESTURES)) return@withContext
             lhm.touchscreenGestures.forEach { gesture: TouchscreenGesture ->
                 settingKeyMap[gesture.keycode] = gesture.settingKey
-                val action = getSavedAction(
-                    gesture.settingKey,
-                    getDefaultActionForScanCode(gesture.keycode)
-                )
-                lhm.setTouchscreenGestureEnabled(gesture, action != Action.NONE)
+                val action = getSavedAction(context, gesture.settingKey, gesture.keycode)
+                lhm.setTouchscreenGestureEnabled(gesture, action != None)
             }
         }
     }
 
-    private fun getSavedAction(key: String, def: Action): Action {
-        val actionString = Settings.System.getStringForUser(
-            context.contentResolver,
-            key,
-            UserHandle.USER_CURRENT
-        )?.takeIf { it.isNotBlank() } ?: return def
-        return try {
-            Action.valueOf(actionString)
-        } catch(_: IllegalArgumentException) {
-            Log.e(TAG, "Unknown gesture action $actionString")
-            def
-        }
-    }
-
-    fun handleKeyScanCode(scanCode: Int) {
+    suspend fun handleKeyScanCode(scanCode: Int) {
         if (scanCode == Gesture.SINGLE_TAP.scanCode && !keyguardManager.isDeviceLocked) {
             // Wake up the device if not locked
             wakeUp()
@@ -93,178 +86,132 @@ class GestureController(private val context: Context) {
         }
         val key: String = settingKeyMap[scanCode] ?: return
         // Handle gestures
-        val action = getSavedAction(key, getDefaultActionForScanCode(scanCode))
-        try {
-            if (!gestureWakeLock.isHeld) {
-                gestureWakeLock.acquire(10 * 1000)
-            }
-            performAction(action)
-        } finally {
-            if (gestureWakeLock.isHeld) {
-                gestureWakeLock.release()
+        withContext(Dispatchers.Default) {
+            try {
+                if (!gestureWakeLock.isHeld) {
+                    gestureWakeLock.acquire(10 * 1000)
+                }
+                performAction(getSavedAction(context, key, scanCode))
+            } finally {
+                if (gestureWakeLock.isHeld) {
+                    gestureWakeLock.release()
+                }
             }
         }
     }
 
     private fun performAction(action: Action) {
-        when (action) {
-            Action.NONE -> return
-            Action.CAMERA -> launchCamera()
-            Action.FLASHLIGHT -> toggleFlashlight()
-            Action.BROWSER -> launchBrowser()
-            Action.DIALER -> launchDialer()
-            Action.EMAIL -> launchEmail()
-            Action.MESSAGES -> launchMessages()
-            Action.PLAY_PAUSE_MUSIC -> playPauseMusic()
-            Action.PREVIOUS_TRACK -> previousTrack()
-            Action.NEXT_TRACK -> nextTrack()
-            Action.VOLUME_DOWN -> volumeDown()
-            Action.VOLUME_UP -> volumeUp()
-            Action.WAKEUP -> wakeUp()
-            Action.AMBIENT_DISPLAY -> launchDozePulse()
+        val success = when (action) {
+            is None -> return
+            is Flashlight -> toggleFlashlight()
+            is Camera -> launchCamera()
+            is TogglePlayback -> togglePlayback()
+            is PreviousTrack -> previousTrack()
+            is NextTrack -> nextTrack()
+            is VolumeDown -> adjustVolume(false)
+            is VolumeUp -> adjustVolume(true)
+            is WakeUp -> wakeUp()
+            is Pulse -> pulse()
+            is OpenApp -> openApp(action.packageName)
+            else -> throw IllegalArgumentException("Unknown action $action")
         }
-        if (action != Action.AMBIENT_DISPLAY) {
+        if (success && action.vibrate) {
             performHapticFeedback()
         }
     }
 
-    private fun launchCamera() {
+    private fun launchCamera(): Boolean {
         wakeUp()
         context.sendBroadcastAsUser(
             Intent(Intent.ACTION_SCREEN_CAMERA_GESTURE),
             UserHandle.SYSTEM,
             Manifest.permission.STATUS_BAR_SERVICE
         )
+        return true
     }
 
-    private fun launchBrowser() {
-        startActivitySafely(getLaunchableIntent(
-            Intent(Intent.ACTION_VIEW, Uri.parse("http:"))))
-    }
-
-    private fun launchDialer() {
-        startActivitySafely(Intent(Intent.ACTION_DIAL, null))
-    }
-
-    private fun launchEmail() {
-        startActivitySafely(getLaunchableIntent(
-            Intent(Intent.ACTION_VIEW, Uri.parse("mailto:"))))
-    }
-
-    private fun launchMessages() {
-        startActivitySafely(getLaunchableIntent(
-            Intent(Intent.ACTION_VIEW, Uri.parse("sms:"))))
-    }
-
-    private fun toggleFlashlight() {
+    private fun toggleFlashlight(): Boolean {
         FlamingoUtils.toggleCameraFlash()
+        return true
     }
 
-    private fun playPauseMusic() {
+    private fun togglePlayback() =
         dispatchMediaKeyToMediaSession(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
-    }
 
-    private fun previousTrack() {
+    private fun previousTrack() =
         dispatchMediaKeyToMediaSession(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
-    }
 
-    private fun nextTrack() {
+    private fun nextTrack() =
         dispatchMediaKeyToMediaSession(KeyEvent.KEYCODE_MEDIA_NEXT)
+
+    private fun adjustVolume(raise: Boolean): Boolean {
+        audioManager.adjustStreamVolume(
+            AudioManager.STREAM_MUSIC,
+            if (raise) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER,
+            0
+        )
+        return true
     }
 
-    private fun volumeDown() {
-        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, 0)
+    private fun wakeUp(): Boolean {
+        powerManager.wakeUp(
+            SystemClock.uptimeMillis(),
+            PowerManager.WAKE_REASON_GESTURE,
+            GESTURE_WAKEUP_REASON
+        )
+        return true
     }
 
-    private fun volumeUp() {
-        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, 0)
-    }
-
-    private fun wakeUp() {
-        powerManager.wakeUp(SystemClock.uptimeMillis(), PowerManager.WAKE_REASON_GESTURE, GESTURE_WAKEUP_REASON)
-    }
-
-    private fun launchDozePulse() {
-        val dozeEnabled = Settings.Secure.getIntForUser(
-            context.contentResolver,
-            Settings.Secure.DOZE_ENABLED,
-            1,
-            UserHandle.USER_CURRENT
-        ) == 1
-        if (dozeEnabled) {
-            context.sendBroadcastAsUser(Intent(PULSE_ACTION), UserHandle.SYSTEM)
+    private fun pulse(): Boolean {
+        if (!ambientDisplayConfig.pulseOnNotificationEnabled(UserHandle.USER_CURRENT)) {
+            return false
         }
+        context.sendBroadcastAsUser(Intent(PULSE_ACTION), UserHandle.SYSTEM)
+        return true
     }
 
-    private fun dispatchMediaKeyToMediaSession(keycode: Int) {
-        val helper = MediaSessionLegacyHelper.getHelper(context) ?: run {
-            Log.w(TAG, "Unable to send media key event")
-            return
+    private fun openApp(packageName: String): Boolean {
+        if (appLockManager.hiddenPackages.contains(packageName)) {
+            return false
         }
-        val event = KeyEvent(SystemClock.uptimeMillis(), SystemClock.uptimeMillis(),
-            KeyEvent.ACTION_DOWN, keycode, 0)
-        helper.sendMediaButtonEvent(event, true)
-        helper.sendMediaButtonEvent(KeyEvent.changeAction(event, KeyEvent.ACTION_UP), true)
-    }
-
-    private fun startActivitySafely(intent: Intent?) {
-        if (intent == null) {
-            Log.w(TAG, "No intent passed to startActivitySafely")
-            return
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
+        if (launchIntent == null) {
+            Log.e(TAG, "Failed to find launch intent for package $packageName")
+            return false
         }
-        intent.addFlags(
+        launchIntent.addFlags(
             Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_SINGLE_TOP or
                 Intent.FLAG_ACTIVITY_CLEAR_TOP
         )
         try {
-            context.startActivityAsUser(intent, null, UserHandle.SYSTEM)
+            context.startActivityAsUser(launchIntent, null, UserHandle.SYSTEM)
             wakeUp()
         } catch (e: ActivityNotFoundException) {
-            Log.e(TAG, "Activity not found to launch")
+            Log.e(TAG, "Activity not found to launch in $packageName")
+            return false
         }
+        return true
     }
 
-    private fun getLaunchableIntent(intent: Intent): Intent? {
-        val resInfo = context.packageManager.queryIntentActivities(
-            intent,
-            ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
-        )
-        if (resInfo.isEmpty()) {
-            return null
+    private fun dispatchMediaKeyToMediaSession(keycode: Int): Boolean {
+        val helper = MediaSessionLegacyHelper.getHelper(context) ?: run {
+            Log.w(TAG, "Unable to send media key event")
+            return false
         }
-        return context.packageManager.getLaunchIntentForPackage(resInfo.first().activityInfo.packageName)
+        val event = KeyEvent(SystemClock.uptimeMillis(), SystemClock.uptimeMillis(),
+            KeyEvent.ACTION_DOWN, keycode, 0)
+        helper.sendMediaButtonEvent(event, true)
+        helper.sendMediaButtonEvent(KeyEvent.changeAction(event, KeyEvent.ACTION_UP), true)
+        return true
     }
 
     private fun performHapticFeedback() {
-        val hapticFeedbackEnabled = Settings.System.getIntForUser(
-            context.contentResolver,
-            TOUCHSCREEN_GESTURE_HAPTIC_FEEDBACK,
-            1,
-            UserHandle.USER_CURRENT
-        ) == 1
-        if (hapticFeedbackEnabled && audioManager.ringerMode != AudioManager.RINGER_MODE_SILENT) {
-            performHapticFeedback(HEAVY_CLICK_EFFECT)
+        if (audioManager.ringerMode == AudioManager.RINGER_MODE_SILENT) {
+            return
         }
-    }
-
-    private fun performHapticFeedback(effect: VibrationEffect) {
         if (vibrator.hasVibrator()) {
-            vibrator.vibrate(effect)
+            vibrator.vibrate(HEAVY_CLICK_EFFECT)
         }
-    }
-
-    companion object {
-        private const val TAG = "GestureController"
-
-        private const val PULSE_ACTION = "com.android.systemui.doze.pulse"
-
-        private const val GESTURE_WAKEUP_REASON = "touchscreen-gesture-wakeup"
-        private const val GESTURE_REQUEST = 1
-        private const val GESTURE_WAKELOCK_TAG = "$TAG:GestureWakeLock"
-
-        private const val TOUCHSCREEN_GESTURE_HAPTIC_FEEDBACK = "touchscreen_gesture_haptic_feedback"
-
-        private val HEAVY_CLICK_EFFECT = VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
     }
 }

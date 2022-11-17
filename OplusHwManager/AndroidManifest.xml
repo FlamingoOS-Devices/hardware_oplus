@@ -19,9 +19,21 @@
           android:sharedUserId="android.uid.system"
           package="com.flamingo.oplushw">
 
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.DEVICE_POWER" />
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
+    <uses-permission android:name="android.permission.MANAGE_APP_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+
+    <protected-broadcast android:name="android.intent.action.SCREEN_CAMERA_GESTURE" />
+    <protected-broadcast android:name="com.android.systemui.doze.pulse" />
+
+    <uses-sdk
+        android:minSdkVersion="33"
+        android:targetSdkVersion="33" />
 
     <application
         android:label="@string/oplushw_manager"
@@ -58,6 +70,10 @@
                 <action android:name="com.flamingo.oplushw.GESTURE_SETTINGS" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".touch.ActionsActivity"
+            android:exported="false" />
 
         <service
             android:name=".KeyHandler"

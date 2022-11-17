@@ -16,11 +16,15 @@
 
 package com.flamingo.oplushw.touch
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.os.UserHandle
+import android.provider.Settings
+import android.util.Log
 
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
-import androidx.preference.ListPreference.SimpleSummaryProvider
 import androidx.preference.PreferenceFragmentCompat
 
 import com.android.internal.lineage.hardware.LineageHardwareManager
@@ -28,10 +32,8 @@ import com.android.internal.lineage.hardware.LineageHardwareManager.FEATURE_TOUC
 import com.android.internal.lineage.hardware.TouchscreenGesture
 import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity
 import com.flamingo.oplushw.R
-import com.flamingo.support.preference.SystemSettingListPreference
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -50,40 +52,66 @@ class SettingsActivity : CollapsingToolbarBaseActivity() {
             }
         }
     }
+}
 
-    class SettingsFragment : PreferenceFragmentCompat() {
-        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-            lifecycleScope.launch(Dispatchers.Default) {
-                val lhm = LineageHardwareManager.getInstance(requireContext())
-                if (!lhm.isSupported(FEATURE_TOUCHSCREEN_GESTURES)) return@launch
-                withContext(Dispatchers.Main) {
-                    setPreferencesFromResource(R.xml.fragment_touch_settings, rootKey)
-                }
-                val gestureEntries = Action.values().map { resources.getString(it.title) }.toTypedArray()
-                val gestureEntryValues = Action.values().map { it.toString() }.toTypedArray()
-                lhm.touchscreenGestures.forEach { gesture: TouchscreenGesture ->
-                    val listPreference = SystemSettingListPreference(requireContext()).apply {
-                        key = gesture.settingKey
-                        title = ScanCodeTitleMap[gesture.keycode]?.let { resources.getString(it) } ?: gesture.name
-                        entries = gestureEntries
-                        entryValues = gestureEntryValues
-                        setDialogTitle(R.string.touchscreen_gesture_action_dialog_title)
-                        setDefaultValue(getDefaultActionForScanCode(gesture.keycode).toString())
-                        summaryProvider = SimpleSummaryProvider.getInstance()
-                    }.also {
-                        it.setOnPreferenceChangeListener { _, newValue ->
-                            val action = Action.valueOf(newValue as String)
-                            lifecycleScope.launch(Dispatchers.Default) {
-                                lhm.setTouchscreenGestureEnabled(gesture, action != Action.NONE)
-                            }
-                            return@setOnPreferenceChangeListener true
-                        }
-                    }
-                    withContext(Dispatchers.Main) {
-                        preferenceScreen.addPreference(listPreference)
-                    }
+class SettingsFragment : PreferenceFragmentCompat() {
+
+    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+        lifecycleScope.launch(Dispatchers.Default) {
+            val context = requireContext()
+            val hardwareManager = LineageHardwareManager.getInstance(context)
+            if (!hardwareManager.isSupported(FEATURE_TOUCHSCREEN_GESTURES)) {
+                return@launch
+            }
+            val gestures = hardwareManager.touchscreenGestures
+            withContext(Dispatchers.Main) {
+                setPreferencesFromResource(R.xml.fragment_touch_settings, rootKey)
+                gestures.map {
+                    createPreference(it, context, hardwareManager)
+                }.forEach {
+                    preferenceScreen.addPreference(it)
                 }
             }
         }
+    }
+
+    private fun createPreference(
+        gesture: TouchscreenGesture,
+        context: Context,
+        hardwareManager: LineageHardwareManager
+    ) = GesturePreference(context, gesture, lifecycleScope).apply {
+            setOnPreferenceClickListener {
+                val intent = Intent(context, ActionsActivity::class.java)
+                    .putExtra(ActionsActivity.KEY_GESTURE, gesture)
+                context.startActivityAsUser(intent, UserHandle.SYSTEM)
+                true
+            }
+            setOnPreferenceChangeListener { _, newValue ->
+                val action = if (newValue == true) {
+                    getDefaultActionForScanCode(gesture.keycode)
+                } else {
+                    None
+                }
+                action.serialize()
+                    .onFailure {
+                        Log.e(TAG, "Failed to serialize action $action")
+                    }
+                    .onSuccess {
+                        lifecycleScope.launch(Dispatchers.Default) {
+                            Settings.Secure.putStringForUser(
+                                context.contentResolver,
+                                gesture.settingKey,
+                                it,
+                                UserHandle.USER_CURRENT
+                            )
+                            hardwareManager.setTouchscreenGestureEnabled(gesture, action != None)
+                        }
+                    }
+                true
+            }
+        }
+
+    companion object {
+        private val TAG = SettingsFragment::class.simpleName!!
     }
 }

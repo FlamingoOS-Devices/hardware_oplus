@@ -30,8 +30,6 @@
 
     <!-- Gestures -->
     <string name="touchscreen_gesture_settings_title">Жесты сенсорного экрана</string>
-    <string name="touchscreen_gesture_haptic_feedback_title">Тактильная обратная связь</string>
-    <string name="touchscreen_gesture_haptic_feedback_summary">Вибрация при обнаружении жеста сенсорного экрана</string>
 
     <!-- Screen off Gestures : Input -->
     <string name="touchscreen_gesture_single_tap_title">Один тап</string>
@@ -45,14 +43,9 @@
     <string name="touchscreen_gesture_letter_w_title">Нарисуйте букву \"W\"</string>
 
     <!-- Screen off Gestures : Actions -->
-    <string name="touchscreen_gesture_action_dialog_title">Действие жеста</string>
     <string name="touchscreen_gesture_action_do_nothing">Ничего не делать</string>
     <string name="touchscreen_gesture_action_flashlight">Переключить фонарик</string>
     <string name="touchscreen_gesture_action_camera">Открыть камеру</string>
-    <string name="touchscreen_gesture_action_browser">Открыть браузер</string>
-    <string name="touchscreen_gesture_action_dialer">Открыть номеронабиратель</string>
-    <string name="touchscreen_gesture_action_email">Просмотреть почту</string>
-    <string name="touchscreen_gesture_action_messages">Просмотреть ваши сообщения</string>
     <string name="touchscreen_gesture_action_play_pause_music">Воспроизведение/пауза музыки</string>
     <string name="touchscreen_gesture_action_previous_track">Воспроизвести предыдущий трек</string>
     <string name="touchscreen_gesture_action_next_track">Воспроизвести следующий трек</string>
