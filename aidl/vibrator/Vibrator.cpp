@@ -376,16 +376,19 @@ int LedVibratorDevice::on(int32_t timeoutMs) {
     if (timeoutMs <= 0) {
         return ret;
     } else if (timeoutMs <= 20) {
-        ret |= write_value(LED_DEVICE "/vmax", timeoutMs * 10);
+        ret |= onWaveform(7);
+    } else if (timeoutMs <= 52) {
+        ret |= onWaveform(2);
+    } else if (timeoutMs <= 102) {
+        ret |= onWaveform(6);
     } else {
+        ret |= write_value(LED_DEVICE "/waveform_index", 7);
         ret |= write_value(LED_DEVICE "/vmax", 1600);
+        ret |= write_value(LED_DEVICE "/duration", timeoutMs);
+        ret |= write_value(LED_DEVICE "/state", "1");
+        ret |= write_value(LED_DEVICE "/activate", "1");
+        ret |= write_value(LED_DEVICE "/activate", "0");
     }
-    ret |= write_value(LED_DEVICE "/waveform_index", 7);
-    ret |= write_value(LED_DEVICE "/duration", timeoutMs);
-    ret |= write_value(LED_DEVICE "/state", "1");
-    ret |= write_value(LED_DEVICE "/activate", "1");
-    ret |= write_value(LED_DEVICE "/activate", "0");
-
     return ret;
 }
 
@@ -519,6 +522,21 @@ ndk::ScopedAStatus Vibrator::perform(Effect effect, EffectStrength es, const std
             ledVib.write_value(LED_DEVICE "/brightness", "1");
             ledVib.write_value(LED_DEVICE "/rtp", "0");
             break;
+        case Effect::THUD:
+            ledVib.write_value(LED_DEVICE "/rtp", "0");
+            ledVib.write_value(LED_DEVICE "/vmax", "1600");
+            ledVib.write_value(LED_DEVICE "/waveform_index", "4");
+            ledVib.write_value(LED_DEVICE "/brightness", "1");
+            ledVib.write_value(LED_DEVICE "/rtp", "0");
+            break;
+        case Effect::POP:
+            ledVib.write_value(LED_DEVICE "/rtp", "0");
+            ledVib.write_value(LED_DEVICE "/vmax", "2500");
+            ledVib.write_value(LED_DEVICE "/duration", "50");
+            ledVib.write_value(LED_DEVICE "/waveform_index", "7");
+            ledVib.write_value(LED_DEVICE "/brightness", "1");
+            ledVib.write_value(LED_DEVICE "/rtp", "0");
+            break;
         default:
             return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
         }
@@ -558,7 +576,7 @@ ndk::ScopedAStatus Vibrator::perform(Effect effect, EffectStrength es, const std
 ndk::ScopedAStatus Vibrator::getSupportedEffects(std::vector<Effect>* _aidl_return) {
     if (ledVib.mDetected) {
         *_aidl_return = {Effect::CLICK, Effect::DOUBLE_CLICK, Effect::TICK, Effect::HEAVY_CLICK,
-                         Effect::TEXTURE_TICK};
+                         Effect::TEXTURE_TICK, Effect::THUD, Effect::POP};
     } else {
 #ifdef TARGET_SUPPORTS_OFFLOAD
         *_aidl_return = {Effect::CLICK, Effect::DOUBLE_CLICK, Effect::TICK, Effect::THUD,
