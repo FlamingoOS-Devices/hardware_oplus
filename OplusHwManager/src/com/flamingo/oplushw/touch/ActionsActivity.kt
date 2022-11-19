@@ -23,6 +23,7 @@ import android.os.UserHandle
 import android.provider.Settings
 import android.util.Log
 
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceFragmentCompat
@@ -120,23 +121,25 @@ class ActionsFragment(
     private fun createShortcuts() {
         val shortcutsGroup = findPreference<PreferenceGroup>(SHORTCUTS_GROUP_KEY) ?: return
         val context = requireContext()
+        val activity = requireActivity()
         Shortcuts.map { actionKlass ->
             actionKlass.NAME
         }.associateWith { actionName ->
-            createShortcutAction(actionName, currentAction.vibrate)
-        }.map { (name, action) ->
+            createShortcut(actionName, currentAction.vibrate)
+        }.map { (name, shortcut) ->
             SwitchPreference(context).apply {
                 key = name
-                title = action.getTitle(context)
+                title = shortcut.getTitle(context)
+                icon = ContextCompat.getDrawable(activity, shortcut.icon)
                 isPersistent = false
                 isChecked = false
                 setOnPreferenceChangeListener { pref, newValue ->
                     if (newValue == false) {
                         return@setOnPreferenceChangeListener false
                     }
-                    // Make sure to update action as currentAction.vibrate
+                    // Make sure to update [shortcut] as [currentAction.vibrate]
                     // may have changed at this point
-                    currentAction = action.also {
+                    currentAction = shortcut.also {
                         it.vibrate = currentAction.vibrate
                     }
                     saveCurrentAction()

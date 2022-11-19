@@ -21,6 +21,7 @@ import android.content.pm.PackageManager.ApplicationInfoFlags
 import android.content.pm.PackageManager.NameNotFoundException
 
 import androidx.annotation.StringRes
+import androidx.annotation.DrawableRes
 
 import com.flamingo.oplushw.R
 
@@ -65,18 +66,48 @@ object None : Action {
         context.getString(R.string.touchscreen_gesture_action_do_nothing)
 }
 
-abstract class Shortcut(@StringRes val title: Int) : Action {
+abstract class Shortcut(
+    @StringRes val title: Int,
+    @DrawableRes val icon: Int
+) : Action {
     override fun getTitle(context: Context) = context.getString(title)
 }
-class Flashlight(override var vibrate: Boolean) : Shortcut(R.string.touchscreen_gesture_action_flashlight)
-class Camera(override var vibrate: Boolean) : Shortcut(R.string.touchscreen_gesture_action_camera)
-class TogglePlayback(override var vibrate: Boolean) : Shortcut(R.string.touchscreen_gesture_action_play_pause_music)
-class PreviousTrack(override var vibrate: Boolean) : Shortcut(R.string.touchscreen_gesture_action_previous_track)
-class NextTrack(override var vibrate: Boolean) : Shortcut(R.string.touchscreen_gesture_action_next_track)
-class VolumeDown(override var vibrate: Boolean) : Shortcut(R.string.touchscreen_gesture_action_volume_down)
-class VolumeUp(override var vibrate: Boolean) : Shortcut(R.string.touchscreen_gesture_action_volume_up)
-class WakeUp(override var vibrate: Boolean) : Shortcut(R.string.touchscreen_gesture_action_wakeup)
-class Pulse(override var vibrate: Boolean) : Shortcut(R.string.touchscreen_gesture_action_ambient_display)
+class Flashlight(override var vibrate: Boolean) : Shortcut(
+    R.string.touchscreen_gesture_action_flashlight,
+    com.android.internal.R.drawable.ic_qs_flashlight
+)
+class Camera(override var vibrate: Boolean) : Shortcut(
+    R.string.touchscreen_gesture_action_camera,
+    com.android.internal.R.drawable.ic_camera
+)
+class TogglePlayback(override var vibrate: Boolean) : Shortcut(
+    R.string.touchscreen_gesture_action_play_pause_music,
+    R.drawable.ic_play_pause
+)
+class PreviousTrack(override var vibrate: Boolean) : Shortcut(
+    R.string.touchscreen_gesture_action_previous_track,
+    R.drawable.ic_skip_previous
+)
+class NextTrack(override var vibrate: Boolean) : Shortcut(
+    R.string.touchscreen_gesture_action_next_track,
+    R.drawable.ic_skip_next
+)
+class VolumeDown(override var vibrate: Boolean) : Shortcut(
+    R.string.touchscreen_gesture_action_volume_down,
+    R.drawable.baseline_volume_down_24
+)
+class VolumeUp(override var vibrate: Boolean) : Shortcut(
+    R.string.touchscreen_gesture_action_volume_up,
+    R.drawable.baseline_volume_up_24
+)
+class WakeUp(override var vibrate: Boolean) : Shortcut(
+    R.string.touchscreen_gesture_action_wakeup,
+    R.drawable.ic_wake_up
+)
+class Pulse(override var vibrate: Boolean) : Shortcut(
+    R.string.touchscreen_gesture_action_ambient_display,
+    R.drawable.ic_wake_up
+)
 
 data class OpenApp(
     override var vibrate: Boolean,
@@ -109,13 +140,12 @@ fun parseAction(json: String): Result<Action> =
         if (name == OpenApp::class.NAME) {
             OpenApp(isVibrationEnabled, jsonObject.getString(KEY_PACKAGE))
         } else {
-            createShortcutAction(name, isVibrationEnabled)
+            createShortcut(name, isVibrationEnabled)
         }
     }
 
-fun createShortcutAction(name: String, isVibrationEnabled: Boolean): Action =
+fun createShortcut(name: String, isVibrationEnabled: Boolean): Shortcut =
     when (name) {
-        None::class.NAME -> None
         Flashlight::class.NAME -> Flashlight(isVibrationEnabled)
         Camera::class.NAME -> Camera(isVibrationEnabled)
         TogglePlayback::class.NAME -> TogglePlayback(isVibrationEnabled)
